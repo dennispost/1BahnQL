@@ -1,8 +1,10 @@
+require('dotenv').config();
+
 const { graphql } = require('graphql');
 const schema = require('./schema.js');
 const express = require('express');
 const graphqlHTTP = require('./express-graphql/dist/index');
-const expressPlayground = require('graphql-playground-middleware-express').default
+const expressPlayground = require('graphql-playground-middleware-express').default;
 
 const ParkingspaceLoader = require('./Parkingspace/ParkingspaceLoader');
 const FlinksterLoader = require('./Flinkster/FlinksterLoader');
@@ -28,7 +30,6 @@ const StationPictureService = require('./StationPicture/StationPictureService');
 
 const StationRelationships = require('./Station/StationRelationships');
 const ParkingspaceRelationships = require('./Parkingspace/ParkingspaceRelationships');
-const RouteRelationships = require('./Routing/RouteRelationships');
 
 const NearbyQuery = require('./NearbyQuery');
 
@@ -54,17 +55,16 @@ const stationIdMappingService = new StationIdMappingService();
 const stationService = new StationService(stationLoader, stationIdMappingService);
 const nearbyStationService = new NearbyStationService(stationService);
 const travelCenterService = new TravelCenterService(travelCenterLoader);
-const facilityService = new FacilityService(facilityLoader)
+const facilityService = new FacilityService(facilityLoader);
 const routingService = new RoutingService();
 const flinksterService = new FlinksterService(flinksterLoader);
 const timetableServcie = new TimetableService(timetableLoader);
 const trackService = new TrackService(stationIdMappingService);
-const stationPictureService = new StationPictureService(stationPictureLoader)
+const stationPictureService = new StationPictureService(stationPictureLoader);
 
 // Relationships
 stationService.relationships = new StationRelationships(parkingspaceService, facilityService, timetableServcie, trackService, stationPictureService);
 parkingspaceService.relationships = new ParkingspaceRelationships(parkingspaceService, stationService);
-routingService.relationships = new RouteRelationships(stationService, trackService);
 
 // Queries
 const root = {
@@ -76,11 +76,10 @@ const root = {
   nearby: args => new NearbyQuery(args.latitude, args.longitude, args.radius, nearbyStationService, parkingspaceService, flinksterService, travelCenterService),
 };
 
-const experimental = process.env.experimental
+const experimental = process.env.experimental;
 if(experimental) {
   root.routing = (args) => {
-    const routeSearch = routingService.routes(args.from, args.to);
-    return routeSearch.then(options => [options[0]]);
+    return routeSearch = routingService.routes(args.from, args.to, args.departure, args.arrival);
   }
 }
 
@@ -119,7 +118,7 @@ const introductionDemoQuery = `
     }
   }
 }
-`
+`;
 
 const app = express();
 app.use('/graphql', graphqlHTTP({
@@ -127,7 +126,7 @@ app.use('/graphql', graphqlHTTP({
   rootValue: root,
   graphiql: true
 }));
-app.get('/playground', expressPlayground({ endpoint: 'graphql' }))
+app.get('/playground', expressPlayground({ endpoint: 'graphql' }));
 // set the port of our application
 // process.env.PORT lets the port be set by Heroku
 const port = process.env.PORT || 8080;

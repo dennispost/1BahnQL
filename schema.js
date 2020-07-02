@@ -1,24 +1,67 @@
-const { buildSchema } = require('graphql');
-const experimental = process.env.experimental
+const { GraphQLDateTime } = require('graphql-iso-date');
+const { makeExecutableSchema } = require('graphql-tools');
+const experimental = process.env.experimental;
 
 const experimentalTypes = experimental ? `
 type Route {
   parts: [RoutePart!]!
-  from: Station
-  to: Station
 }
 
 type RoutePart {
-  # Station where the part begins
-  from: Station!
-  to: Station!
-  delay: Int
-  product: Product
-  direction: String!
-  start: String!
-  end: String!
-  departingTrack: Track
-  arrivingTrack: Track
+  origin: RouteStop!
+  destination: RouteStop!
+  arrival: String
+  plannedArrival: String
+  arrivalDelay: String
+  departure: String
+  plannedDeparture: String
+  reachble: Boolean!
+  tripId: Int!
+  line: RouteLine
+  direction: String
+  arrivalPlatform: String
+  plannedArrivalPlatform: String
+  departurePlatform: String
+  plannedDeparturePlatform: String
+}
+
+type RouteStop {
+    type: String!
+    id: String!
+    name: String!
+    location: RouteLocation!
+    products: RouteProducts!
+}
+
+type RouteLocation {
+    type: String!
+    id: Int!
+    latitude: Float!
+    longitude: Float!
+}
+
+type RouteProducts {
+    nationalExpress: Boolean!
+    national: Boolean!
+    regionalExp: Boolean!
+    regional: Boolean!
+    suburban: Boolean!
+    bus: Boolean!
+    ferry: Boolean!
+    subway: Boolean!
+    tram: Boolean!
+    taxi: Boolean!
+}
+
+type RouteLine {
+    type: String!
+    id: String!
+    fahrtNr: Int!
+    name: String!
+    adminCode: String!
+    mode: String!
+    product: String!
+    additionalName: String
 }
 
 type Product {
@@ -27,13 +70,25 @@ type Product {
   productCode: Int
   productName: String
 }
-` : ''
+
+type HafasStation {
+    type: String!
+    id: Int!
+    name: String!
+    location: Location!
+}
+` : '';
+
+const experimentalScalars = experimental ? `
+  scalar DateTime
+` : '';
 
 const experimentalQuerys = experimental ? `
-  routing(from: Int!, to: Int!): [Route!]!
-` : ''
+  routing(from: Int!, to: Int!, departure: DateTime, arrival: DateTime): [Route!]!
+` : '';
 
-const schema = buildSchema(`
+const schemaString = `
+  ${experimentalScalars}
   type Query {
     ${experimentalQuerys}
 
@@ -225,7 +280,6 @@ const schema = buildSchema(`
     isSpecialProductDb: Boolean!
     isOutOfService: Boolean!
     station: Station
-    occupancy: Occupancy
     outOfServiceText: String
     outOfServiceTextEn: String
     reservation: String
@@ -395,6 +449,12 @@ const schema = buildSchema(`
     taxrate: Float!
     preferredprice: Boolean!
   }
-`);
+`;
+
+const resolveFunctions = {
+    DateTime: GraphQLDateTime
+};
+
+const schema = makeExecutableSchema({ typeDefs: schemaString, resolvers: resolveFunctions });
 
 module.exports = schema;
